@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Robô Matemático – 3º ano</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f6ff;--ink:#1f2a55;--card:#fff;--line:#c9d4f5;--go:#2f9e77;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a33;--ink:#eef1ff;--card:#212a52;--line:#3a4680}}
+:root[data-theme="dark"]{--bg:#141a33;--ink:#eef1ff;--card:#212a52;--line:#3a4680}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 20px/1.5 'Baloo 2','Trebuchet MS',system-ui,sans-serif}
+header{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:12px 16px;max-width:760px;margin:auto}
+header b{font-size:22px}
+button{font:inherit;color:inherit;cursor:pointer;border:3px solid var(--line);background:var(--card);border-radius:18px;padding:10px 18px;min-height:56px}
+button:hover{border-color:var(--ink)}
+button:focus-visible{outline:4px solid #ffb703;outline-offset:2px}
+.hb{min-height:48px;padding:6px 12px;font-size:18px}
+main{max-width:760px;margin:auto;padding:8px 16px 220px}
+h1{font-size:32px;line-height:1.2;margin:8px 0}h2{font-size:38px;margin:12px 0;text-align:center}
+.sub{opacity:.8;margin:4px 0 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.tile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;padding:18px 10px;border-color:var(--c);border-width:4px}
+.tile b{font-size:52px;line-height:1.1}.tile span{font-size:26px;font-weight:700}.tile small{font-size:17px;opacity:.8}
+.tile:hover{background:color-mix(in srgb,var(--c) 18%,var(--card))}
+.top{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:24px}
+.dots i{display:inline-block;width:20px;height:20px;border-radius:50%;border:3px solid var(--line);margin-left:6px}
+.dots i.on{background:#ffd166;border-color:#e0a800}
+.card{background:var(--card);border:3px solid var(--line);border-radius:26px;padding:16px;margin-top:10px;text-align:center}
+canvas#v{width:100%;max-width:640px;height:auto;background:color-mix(in srgb,#8ecbff 16%,var(--card));border-radius:18px}
+.opts{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.opts button{min-width:110px;font-size:36px;font-weight:700}
+.opts .yes{background:#b7f0d5;border-color:var(--go);color:#0d3b2a}
+.opts .no{opacity:.4}
+.go{background:var(--go);color:#fff;border-color:var(--go);font-size:24px;font-weight:700}
+.big{font-size:44px;margin:6px}
+#tw{position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));display:flex;align-items:flex-end;gap:6px;pointer-events:none;z-index:5}
+#t{width:112px;height:120px}
+.bub{max-width:min(420px,calc(100vw - 140px));background:var(--card);border:3px solid var(--line);border-radius:20px 20px 20px 4px;padding:8px 14px;font-size:19px;margin-bottom:34px}
+#br{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;z-index:10;text-align:center;padding:20px}
+#br[hidden]{display:none}
+#br i{width:120px;height:120px;border-radius:50%;background:#7be0c3;animation:br 8s ease-in-out infinite}
+@keyframes br{50%{transform:scale(1.7)}}
+@media (prefers-reduced-motion:reduce){#br i{animation:none}}
+</style></head><body>
+<header><b>🤖 Robô Matemático</b><span><button class="hb" onclick="menu()">🏠 Menu</button> <button class="hb" id="sn" onclick="tog()">🔈 Voz: desligada</button> <button class="hb" onclick="br.hidden=false">🌬️ Calma</button></span></header>
+<main id="m"></main>
+<aside id="tw"><canvas id="t" width="140" height="150" aria-label="Professora Bia, robô"></canvas><div id="b" class="bub" role="status"></div></aside>
+<div id="br" hidden><h1>Vamos respirar juntos</h1><i></i><p>Quando o círculo crescer, puxe o ar pelo nariz.<br>Quando diminuir, solte devagar pela boca.</p><button class="go" onclick="br.hidden=true">Estou pronto</button></div>
+<script>
+const $=s=>document.querySelector(s),R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),sh=a=>a.sort(()=>Math.random()-.5),br=$('#br');
+let S={sound:false,stars:0,g:null,i:0,ok:0,q:null,miss:0},talk=0;
+try{S.stars=+localStorage.getItem('st')||0}catch(e){}
+const save=()=>{try{localStorage.setItem('st',S.stars)}catch(e){}};
+const P=['Muito bem!','Isso mesmo!','Você acertou!','Uau, ótimo trabalho!'];
+const opts=a=>{const s=new Set([a]);while(s.size<3){const d=R(-3,3);if(d&&a+d>=0)s.add(a+d)}return sh([...s])};
+function row(c,n,e,x,y,s,per,fade=0){c.font=s*.8+'px serif';c.textBaseline='top';for(let i=0;i<n;i++){const X=x+(i%per)*s,Y=y+Math.floor(i/per)*s,f=i>=n-fade;c.globalAlpha=f?.3:1;c.fillText(e,X,Y);if(f){c.globalAlpha=1;c.fillText('❌',X+s*.1,Y)}}c.globalAlpha=1}
+const SH=[['Círculo',c=>{c.arc(320,115,80,0,7)},'Não tem lados nem pontas: é redondo.'],['Quadrado',c=>c.rect(240,35,160,160),'Tem 4 lados do mesmo tamanho.'],['Triângulo',c=>{c.moveTo(320,30);c.lineTo(410,195);c.lineTo(230,195);c.closePath()},'Tem 3 lados e 3 pontas.'],['Retângulo',c=>c.rect(210,55,220,120),'Tem 4 lados: 2 compridos e 2 curtos.']];
+const G={
+contar:{n:'Contar',d:'Quantos tem?',e:'🍎',c:'#ff7a7a',gen(){const n=R(3,12);return{say:'Conte com calma, um por um. Quantas maçãs você vê?',txt:'Quantas maçãs?',ans:n,opts:opts(n),hint:'Aponte com o dedo e conte uma de cada vez.',draw:c=>row(c,n,'🍎',188,50,44,6)}}},
+somar:{n:'Somar',d:'Juntar quantidades',e:'➕',c:'#2f9e77',gen(){const a=R(1,9),b=R(1,9),s=a+b;return{say:`Vamos juntar. ${a} mais ${b} é quanto?`,txt:`${a} + ${b} = ?`,ans:s,opts:opts(s),hint:'Junte as duas quantidades e conte tudo.',draw:c=>{row(c,a,'🍎',15,70,36,5);c.font='60px sans-serif';c.fillStyle='#4a5aa8';c.fillText('+',235,80);row(c,b,'🍌',320,70,36,5)}}}},
+subtrair:{n:'Subtrair',d:'Tirar quantidades',e:'➖',c:'#ff9f1c',gen(){const a=R(4,14),b=R(1,a-1),s=a-b;return{say:`Vamos tirar. ${a} menos ${b} é quanto?`,txt:`${a} − ${b} = ?`,ans:s,opts:opts(s),hint:`Comece com ${a} e tire ${b}. Conte o que sobrou.`,draw:c=>row(c,a,'⭐',166,50,44,7,b)}}},
+multiplicar:{n:'Multiplicar',d:'Grupos iguais',e:'✖️',c:'#8e6bd8',gen(){const t=R(2,5),n=R(1,6),p=n*t;return{say:`${n} grupos com ${t} em cada. Quantos ao todo?`,txt:`${n} × ${t} = ?`,ans:p,opts:opts(p),hint:`Some ${t} por ${n} vezes.`,draw:c=>{for(let i=0;i<n;i++){const X=20+(i%3)*205,Y=20+Math.floor(i/3)*100;c.strokeStyle='#4a5aa8';c.lineWidth=3;c.strokeRect(X,Y,t*30+16,62);row(c,t,'🐞',X+8,Y+14,30,5)}}}}},
+dividir:{n:'Dividir',d:'Repartir igualmente',e:'➗',c:'#3a9ad9',gen(){const g=R(2,4),k=R(1,5),T=g*k;return{say:`Vamos repartir ${T} balas igualmente entre ${g} crianças. Quantas cada uma ganha?`,txt:`${T} ÷ ${g} = ?`,ans:k,opts:opts(k),hint:`Faça ${g} grupos iguais com as ${T} balas.`,draw:(c,r)=>{if(!r)return row(c,T,'🍬',120,60,40,10);for(let i=0;i<g;i++){const X=30+i*150;c.fillStyle='#fff';c.strokeStyle='#4a5aa8';c.lineWidth=4;c.beginPath();c.ellipse(X+52,150,62,34,0,0,7);c.fill();c.stroke();row(c,k,'🍬',X+2,118,28,5)}}}}},
+formas:{n:'Formas',d:'Que forma é essa?',e:'🔷',c:'#e05a9a',gen(){const s=SH[R(0,3)];return{say:'Olhe bem para a forma. Qual é o nome dela?',txt:'Qual é o nome desta forma?',ans:s[0],opts:sh([s[0],...sh(SH.filter(z=>z!==s).map(z=>z[0])).slice(0,2)]),hint:s[2],draw:c=>{c.fillStyle='#ffd166';c.strokeStyle='#4a5aa8';c.lineWidth=6;c.beginPath();s[1](c);c.fill();c.stroke()}}}}
+};
+let VZ=null,AC=null;
+function voz(){try{const v=speechSynthesis.getVoices();VZ=v.find(x=>/^pt-BR/i.test(x.lang))||v.find(x=>/^pt/i.test(x.lang))||null}catch(e){}}
+try{speechSynthesis.onvoiceschanged=voz;voz()}catch(e){}
+function tone(f,d=.25,t=0){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume();const o=AC.createOscillator(),g=AC.createGain(),s=AC.currentTime+t;o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.35,s+.03);g.gain.exponentialRampToValueAtTime(.0001,s+d);o.connect(g);g.connect(AC.destination);o.start(s);o.stop(s+d)}catch(e){}}
+const ding=ok=>{if(!S.sound)return;ok?(tone(660,.2),tone(880,.3,.15)):tone(330,.3)};
+function speak(t){const warn=m=>{$('#b').textContent=m};if(!('speechSynthesis' in window))return warn('Este navegador não consegue falar. Abra o link direto no Chrome ou Edge.');try{const ss=speechSynthesis;ss.cancel();setTimeout(()=>{voz();const u=new SpeechSynthesisUtterance(t);let ok=0;u.lang='pt-BR';if(VZ)u.voice=VZ;u.rate=.9;u.onstart=()=>ok=1;u.onerror=e=>{if(e.error!='canceled'&&e.error!='interrupted')warn('A voz não funcionou ('+e.error+'). Abra o link direto no Chrome ou Edge.')};ss.resume();ss.speak(u);setTimeout(()=>{if(!ok&&!ss.speaking)warn('O navegador não tocou a voz. Abra o link direto no Chrome ou Edge e confira o volume.')},2500)},80)}catch(e){}}
+function say(t,v){$('#b').textContent=t;talk=1;clearTimeout(say.h);say.h=setTimeout(()=>talk=0,Math.min(4500,t.length*60));if(v)tone(600,.12);if(S.sound||v)speak(t)}
+function tog(){S.sound=!S.sound;$('#sn').textContent=S.sound?'🔊 Voz: ligada':'🔈 Voz: desligada';if(S.sound){tone(660,.2);tone(880,.3,.15);say('Agora eu vou falar com você!',1);if(!('speechSynthesis' in window))$('#b').textContent='Este navegador não tem voz, mas vou tocar sons de acerto.'}}
+function menu(){S.g=null;$('#m').innerHTML=`<h1>O que vamos praticar hoje?</h1><p class="sub">Escolha uma aventura. São só 5 desafios, sem pressa e sem tempo.</p><div class="grid">${Object.entries(G).map(([k,g])=>`<button class="tile" style="--c:${g.c}" onclick="start('${k}')"><b>${g.e}</b><span>${g.n}</span><small>${g.d}</small></button>`).join('')}</div><p class="sub">⭐ ${S.stars} estrelas ganhas</p>`;say('Oi! Eu sou a Bia, sua professora robô. O que vamos praticar hoje?')}
+function start(g){S.g=g;S.i=0;S.ok=0;ask()}
+const paint=r=>{const c=$('#v').getContext('2d');c.clearRect(0,0,640,230);S.q.draw(c,r)};
+function ask(){const q=S.q=G[S.g].gen();S.miss=0;$('#m').innerHTML=`<div class="top"><span>${G[S.g].e} ${G[S.g].n}</span><span class="dots">${[0,1,2,3,4].map(i=>`<i class="${i<S.i?'on':''}"></i>`).join('')}</span></div><div class="card"><canvas id="v" width="640" height="230" role="img" aria-label="Desenho do desafio"></canvas><h2>${q.txt}</h2><button onclick="say(S.q.say,1)">🔊 Ouvir</button><div class="opts">${q.opts.map(o=>`<button data-o="${o}">${o}</button>`).join('')}</div><div id="fb"></div></div>`;paint(0);say(q.say)}
+$('#m').onclick=e=>{const b=e.target.closest('button[data-o]');if(b&&!b.disabled)pick(b)};
+const lock=()=>document.querySelectorAll('.opts button').forEach(x=>x.disabled=true);
+const fin=()=>{$('#fb').innerHTML=`<button class="go" onclick="next()">${S.i>=4?'Ver meu resultado':'Próxima'} ➜</button>`;$('#fb button').focus()};
+function pick(b){const q=S.q;if(b.dataset.o==String(q.ans)){lock();b.classList.add('yes');S.stars++;S.ok++;save();ding(1);paint(1);say(P[R(0,3)]+' A resposta é '+q.ans+'. ⭐');fin()}else{S.miss++;b.disabled=true;ding(0);b.classList.add('no');if(S.miss>1){lock();[...document.querySelectorAll('.opts button')].find(x=>x.dataset.o==String(q.ans)).classList.add('yes');paint(1);say('Tudo bem errar, é assim que aprendemos! A resposta é '+q.ans+'.');fin()}else say('Quase! Respire e tente de novo. Dica: '+q.hint)}}
+function next(){S.i++;if(S.i>=5)end();else ask()}
+function end(){$('#m').innerHTML=`<div class="card"><h2>Missão cumprida! 🎉</h2><p class="big">${'⭐'.repeat(S.ok)||'💪'}</p><p>Você acertou ${S.ok} de 5. Total: ${S.stars} estrelas.</p><button class="go" onclick="start(S.g)">Jogar de novo</button> <button onclick="menu()">Escolher outra aventura</button></div>`;say('Missão cumprida! Você foi incrível. Quer jogar de novo ou escolher outra aventura?')}
+const x=$('#t').getContext('2d'),RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function bot(t){x.clearRect(0,0,140,150);x.save();x.translate(0,RM?0:Math.sin(t/600)*2.5);x.lineWidth=3;x.strokeStyle='#4a5aa8';
+x.beginPath();x.moveTo(70,24);x.lineTo(70,12);x.stroke();x.fillStyle=talk?'#ffd166':'#7be0c3';x.beginPath();x.arc(70,9,6,0,7);x.fill();x.stroke();
+x.fillStyle='#8ecbff';x.beginPath();x.roundRect(40,94,60,42,14);x.fill();x.stroke();
+x.beginPath();x.moveTo(40,104);x.lineTo(26,122);x.stroke();const w=talk&&!RM?Math.sin(t/150)*8:0;x.beginPath();x.moveTo(100,104);x.lineTo(116,88+w);x.stroke();
+x.fillStyle='#ff7a7a';x.beginPath();x.moveTo(70,104);x.lineTo(56,96);x.lineTo(56,112);x.fill();x.beginPath();x.moveTo(70,104);x.lineTo(84,96);x.lineTo(84,112);x.fill();
+x.fillStyle='#eef2ff';x.beginPath();x.roundRect(28,24,84,66,22);x.fill();x.stroke();
+x.fillStyle='#22305e';const bl=t%3600<140;
+[52,88].forEach(e=>{x.beginPath();if(bl){x.moveTo(e-6,58);x.lineTo(e+6,58);x.stroke()}else{x.arc(e,58,6,0,7);x.fill()}x.beginPath();x.arc(e,58,13,0,7);x.stroke()});
+const m=talk&&!RM?3+Math.abs(Math.sin(t/110))*8:3;x.fillStyle='#ff7a7a';x.beginPath();x.ellipse(70,78,9,m,0,0,7);x.fill();
+x.restore();requestAnimationFrame(bot)}
+requestAnimationFrame(bot);menu();
+</script></body></html>
